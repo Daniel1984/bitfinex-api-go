@@ -7,6 +7,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"github.com/bitfinexcom/bitfinex-api-go/pkg/models/common"
 	"github.com/bitfinexcom/bitfinex-api-go/v2/websocket"
@@ -31,13 +32,13 @@ func main() {
 		}
 	}()
 	done := make(chan bool, 1)
-	interrupt := make(chan os.Signal)
-	signal.Notify(interrupt, os.Interrupt, os.Kill)
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGHUP, syscall.SIGTERM)
 	go func() {
 		log.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
 	go func() {
-		<-interrupt
+		<-sigs
 		client.Close()
 		done <- true
 		os.Exit(0)
